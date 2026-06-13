@@ -3,6 +3,7 @@ const path = require("node:path");
 
 const dotenv = require("dotenv");
 const express = require("express");
+const { DIAGNOSTICO1_ITEMS } = require("./instrumentos");
 
 dotenv.config();
 
@@ -75,6 +76,99 @@ app.get("/api/diagnosticos.csv", asyncHandler(async (_req, res) => {
   res.header("Content-Type", "text/csv; charset=utf-8");
   res.attachment("diagnosticos-yuca.csv");
   res.send(csv);
+}));
+
+app.get("/api/export/resumen.csv", asyncHandler(async (_req, res) => {
+  const records = await getFullRecords();
+  sendCsv(res, "analisis-yuca-resumen.csv", buildSummaryRows(records), [
+    "id",
+    "nombre",
+    "tipo",
+    "fecha",
+    "respondidas",
+    "puntajeAjustado",
+    "puntajeMaximo",
+    "promedio",
+    "porcentaje",
+    "nivel"
+  ]);
+}));
+
+app.get("/api/export/detalle.csv", asyncHandler(async (_req, res) => {
+  const records = await getFullRecords();
+  sendCsv(res, "analisis-yuca-detalle-preguntas.csv", buildDetailRows(records), [
+    "id",
+    "nombre",
+    "tipo",
+    "fecha",
+    "numeroPregunta",
+    "seccion",
+    "dimension",
+    "preguntaInversa",
+    "respuestaOriginal",
+    "puntajeAjustado",
+    "pregunta"
+  ]);
+}));
+
+app.get("/api/export/secciones.csv", asyncHandler(async (_req, res) => {
+  const records = await getFullRecords();
+  sendCsv(res, "analisis-yuca-por-seccion.csv", buildGroupRows(records, "seccion"), [
+    "id",
+    "nombre",
+    "grupo",
+    "preguntas",
+    "puntajeAjustado",
+    "puntajeMaximo",
+    "promedio",
+    "porcentaje",
+    "nivel"
+  ]);
+}));
+
+app.get("/api/export/dimensiones.csv", asyncHandler(async (_req, res) => {
+  const records = await getFullRecords();
+  sendCsv(res, "analisis-yuca-por-dimension.csv", buildGroupRows(records, "dimension"), [
+    "id",
+    "nombre",
+    "grupo",
+    "preguntas",
+    "puntajeAjustado",
+    "puntajeMaximo",
+    "promedio",
+    "porcentaje",
+    "nivel"
+  ]);
+}));
+
+app.get("/api/export/matriz.csv", asyncHandler(async (_req, res) => {
+  const records = await getFullRecords();
+  const maxQuestions = Math.max(
+    65,
+    ...records.map((record) => Math.max(
+      0,
+      ...Object.keys(parseStoredAnswers(record.respuestas)).map((key) => Number(key) + 1)
+    ))
+  );
+  const questionHeaders = Array.from({ length: maxQuestions }, (_item, index) => `P${index + 1}`);
+  const header = ["id", "nombre", "tipo", "fecha", ...questionHeaders];
+  const rows = records.map((record) => {
+    const answers = parseStoredAnswers(record.respuestas);
+    const row = {
+      id: record.id,
+      nombre: record.nombre,
+      tipo: record.tipo,
+      fecha: record.createdAt
+    };
+
+    for (let i = 0; i < maxQuestions; i += 1) {
+      row[`P${i + 1}`] = answers[String(i)] ?? "";
+    }
+
+    return row;
+  });
+
+  sendCsv(res, "analisis-yuca-matriz-respuestas.csv", rows, header);
 }));
 
 app.get("/api/diagnosticos/:id", asyncHandler(async (req, res) => {
@@ -413,6 +507,183 @@ function normalizeRowDates(row) {
 function csvValue(value) {
   const text = String(value ?? "");
   return `"${text.replaceAll('"', '""')}"`;
+}
+
+async function getFullRecords() {
+  const rows = await store.list(5000);
+  const records = [];
+
+  for (const row of rows) {
+    const record = await store.get(row.id);
+
+    if (record) {
+      records.push(record);
+    }
+  }
+
+  return records;
+}
+
+function buildSummaryRows(records) {
+  return records.map((record) => {
+    const analysis = analyzeRecord(record);
+
+    return {
+      id: record.id,
+      nombre: record.nombre,
+      tipo: record.tipo,
+      fecha: record.createdAt,
+      respondidas: analysis.respondidas,
+      puntajeAjustado: analysis.puntajeAjustado,
+      puntajeMaximo: analysis.puntajeMaximo,
+      promedio: analysis.promedio,
+      porcentaje: analysis.porcentaje,
+      nivel: analysis.nivel
+    };
+  });
+}
+
+function buildDetailRows(records) {
+  return records.flatMap((record) => analyzeRecord(record).detalle);
+}
+
+function buildGroupRows(records, groupKey) {
+  return records.flatMap((record) => {
+    const groups = new Map();
+
+    for (const detail of analyzeRecord(record).detalle) {
+      if (!detail.puntajeAjustado) {
+        continue;
+      }
+
+      const groupName = detail[groupKey] || "Sin clasificar";
+      const current = groups.get(groupName) || {
+        id: record.id,
+        nombre: record.nombre,
+        grupo: groupName,
+        preguntas: 0,
+        puntajeAjustado: 0,
+        puntajeMaximo: 0
+      };
+
+      current.preguntas += 1;
+      current.puntajeAjustado += Number(detail.puntajeAjustado);
+      current.puntajeMaximo += 5;
+      groups.set(groupName, current);
+    }
+
+    return Array.from(groups.values()).map((row) => {
+      const porcentaje = row.puntajeMaximo ? round2((row.puntajeAjustado / row.puntajeMaximo) * 100) : 0;
+
+      return {
+        ...row,
+        promedio: row.preguntas ? round2(row.puntajeAjustado / row.preguntas) : 0,
+        porcentaje,
+        nivel: scoreLevel(porcentaje)
+      };
+    });
+  });
+}
+
+function analyzeRecord(record) {
+  const answers = parseStoredAnswers(record.respuestas);
+
+  if (record.tipo !== "diagnostico1") {
+    const detail = Object.keys(answers)
+      .sort((a, b) => Number(a) - Number(b))
+      .map((key) => ({
+        id: record.id,
+        nombre: record.nombre,
+        tipo: record.tipo,
+        fecha: record.createdAt,
+        numeroPregunta: Number(key) + 1,
+        seccion: "",
+        dimension: "",
+        preguntaInversa: "",
+        respuestaOriginal: answers[key],
+        puntajeAjustado: "",
+        pregunta: ""
+      }));
+
+    return {
+      respondidas: detail.length,
+      puntajeAjustado: "",
+      puntajeMaximo: "",
+      promedio: "",
+      porcentaje: "",
+      nivel: "Sin puntaje",
+      detalle: detail
+    };
+  }
+
+  const detail = DIAGNOSTICO1_ITEMS
+    .filter((item) => answers[String(item.numero - 1)] !== undefined)
+    .map((item) => {
+      const raw = Number(answers[String(item.numero - 1)]);
+      const adjusted = item.inversa ? 6 - raw : raw;
+
+      return {
+        id: record.id,
+        nombre: record.nombre,
+        tipo: record.tipo,
+        fecha: record.createdAt,
+        numeroPregunta: item.numero,
+        seccion: item.seccion,
+        dimension: item.dimension,
+        preguntaInversa: item.inversa ? "si" : "no",
+        respuestaOriginal: raw,
+        puntajeAjustado: adjusted,
+        pregunta: item.pregunta
+      };
+    });
+  const puntajeAjustado = detail.reduce((total, item) => total + item.puntajeAjustado, 0);
+  const puntajeMaximo = detail.length * 5;
+  const porcentaje = puntajeMaximo ? round2((puntajeAjustado / puntajeMaximo) * 100) : 0;
+
+  return {
+    respondidas: detail.length,
+    puntajeAjustado,
+    puntajeMaximo,
+    promedio: detail.length ? round2(puntajeAjustado / detail.length) : 0,
+    porcentaje,
+    nivel: scoreLevel(porcentaje),
+    detalle: detail
+  };
+}
+
+function sendCsv(res, filename, rows, header) {
+  const csv = [
+    header.join(","),
+    ...rows.map((row) => header.map((key) => csvValue(row[key])).join(","))
+  ].join("\n");
+
+  res.header("Content-Type", "text/csv; charset=utf-8");
+  res.attachment(filename);
+  res.send(`\uFEFF${csv}`);
+}
+
+function round2(value) {
+  return Math.round(value * 100) / 100;
+}
+
+function scoreLevel(percent) {
+  if (percent >= 85) {
+    return "Alto";
+  }
+
+  if (percent >= 70) {
+    return "Medio-alto";
+  }
+
+  if (percent >= 55) {
+    return "Medio";
+  }
+
+  if (percent >= 40) {
+    return "Bajo-medio";
+  }
+
+  return "Bajo";
 }
 
 async function maybeStartNgrok(localPort) {

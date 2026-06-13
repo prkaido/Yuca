@@ -76,7 +76,7 @@
 
     .actions {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
       gap: 12px;
       margin: 22px 0;
     }
@@ -241,8 +241,28 @@
         <span>Formulario de opciones</span>
       </a>
       <a class="action" href="/api/diagnosticos.csv">
-        <strong>Descargar CSV</strong>
-        <span>Exportar envios</span>
+        <strong>Envios CSV</strong>
+        <span>Lista basica</span>
+      </a>
+      <a class="action" href="/api/export/resumen.csv">
+        <strong>Resumen</strong>
+        <span>Puntaje por productor</span>
+      </a>
+      <a class="action" href="/api/export/detalle.csv">
+        <strong>Detalle</strong>
+        <span>Pregunta por pregunta</span>
+      </a>
+      <a class="action" href="/api/export/secciones.csv">
+        <strong>Secciones</strong>
+        <span>Analisis PMBOK</span>
+      </a>
+      <a class="action" href="/api/export/dimensiones.csv">
+        <strong>Dimensiones</strong>
+        <span>Areas de gestion</span>
+      </a>
+      <a class="action" href="/api/export/matriz.csv">
+        <strong>Matriz</strong>
+        <span>Respuestas P1, P2...</span>
       </a>
     </div>
 

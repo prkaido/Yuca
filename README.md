@@ -65,6 +65,16 @@ El servidor imprimira la URL publica de ngrok en la consola.
 - `GET /api/diagnosticos.csv` descarga CSV.
 - `GET /api/health` verifica el servidor.
 
+## Exportaciones para analisis
+
+- `GET /api/export/resumen.csv`: puntaje general por productor.
+- `GET /api/export/detalle.csv`: una fila por pregunta respondida.
+- `GET /api/export/secciones.csv`: resultados por seccion del instrumento.
+- `GET /api/export/dimensiones.csv`: resultados por dimension de gestion.
+- `GET /api/export/matriz.csv`: respuestas en columnas `P1`, `P2`, `P3`, etc.
+
+Para analisis humano en Excel, descarga primero `resumen.csv` y `detalle.csv`.
+
 ## Datos
 
 La base local queda en `data/server-yuca.sqlite`. Esa carpeta no se sube a GitHub.
