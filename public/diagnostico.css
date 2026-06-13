@@ -23,7 +23,7 @@
 body {
   min-height: 100vh;
   margin: 0;
-  padding: 28px 16px;
+  padding: 20px 14px;
   background:
     radial-gradient(circle at 12% 10%, rgba(242, 193, 78, 0.20), transparent 28%),
     linear-gradient(135deg, #eef6e9 0%, var(--bg) 44%, #f8f2dc 100%);
@@ -32,7 +32,7 @@ body {
 }
 
 .card {
-  width: min(980px, 100%);
+  width: min(860px, 100%);
   margin: 0 auto;
   padding: clamp(20px, 4vw, 34px);
   border: 1px solid rgba(31, 122, 61, 0.12);
@@ -44,7 +44,7 @@ body {
 h1 {
   margin: 0 0 10px;
   color: var(--green-dark);
-  font-size: clamp(28px, 4vw, 42px);
+  font-size: clamp(26px, 4vw, 40px);
   line-height: 1.05;
   letter-spacing: 0;
 }
@@ -56,8 +56,8 @@ p {
 
 input {
   width: 100%;
-  min-height: 48px;
-  padding: 12px 14px;
+  min-height: 58px;
+  padding: 14px 16px;
   border: 1px solid var(--line-strong);
   border-radius: 8px;
   margin: 10px 0 14px;
@@ -73,10 +73,10 @@ button:focus-visible {
 }
 
 .btn {
-  min-height: 44px;
+  min-height: 54px;
   border: 0;
   border-radius: 8px;
-  padding: 11px 18px;
+  padding: 13px 20px;
   background: var(--green);
   color: #ffffff;
   cursor: pointer;
@@ -138,13 +138,13 @@ button:focus-visible {
 #meta {
   margin: 0 0 18px;
   color: var(--muted);
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
 }
 
 .q {
-  padding: 18px 0;
-  border-top: 1px solid var(--line);
+  padding: 0;
+  border-top: 0;
 }
 
 .q:first-child {
@@ -153,50 +153,52 @@ button:focus-visible {
 
 .question-title {
   display: grid;
-  grid-template-columns: 42px 1fr;
-  gap: 10px;
+  grid-template-columns: 52px 1fr;
+  gap: 14px;
   align-items: start;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
   font-weight: 700;
-  line-height: 1.45;
+  line-height: 1.38;
+  font-size: clamp(20px, 4vw, 28px);
 }
 
 .question-number {
   display: inline-grid;
-  width: 34px;
-  height: 34px;
+  width: 42px;
+  height: 42px;
   place-items: center;
   border-radius: 50%;
   background: var(--green-soft);
   color: var(--green-dark);
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .opts {
   display: grid;
-  gap: 8px;
+  gap: 10px;
 }
 
 .opts.scale {
-  grid-template-columns: repeat(5, minmax(44px, 1fr));
+  grid-template-columns: 1fr;
 }
 
 .opts.choice-list {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
 }
 
 .opts button {
-  min-height: 44px;
+  min-height: 72px;
   margin: 0;
-  padding: 10px 12px;
+  padding: 14px 16px;
   border: 1px solid var(--line-strong);
   border-radius: 8px;
   background: var(--surface);
   color: var(--ink);
   cursor: pointer;
   font: inherit;
+  font-size: 18px;
   line-height: 1.25;
-  text-align: center;
+  text-align: left;
   transition:
     border-color 0.16s ease,
     background 0.16s ease,
@@ -229,6 +231,85 @@ button:focus-visible {
   margin-top: 20px;
   padding-top: 16px;
   border-top: 1px solid var(--line);
+}
+
+.intro-panel {
+  max-width: 680px;
+}
+
+.helper-text {
+  margin: 6px 0 16px;
+  color: var(--muted);
+  font-size: 18px;
+}
+
+.question-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: clamp(16px, 4vw, 26px);
+  background: var(--surface-soft);
+}
+
+.assist-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.listen-btn {
+  min-height: 46px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  padding: 10px 14px;
+  background: var(--surface);
+  color: var(--green-dark);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+.listen-btn:hover {
+  border-color: var(--green);
+  background: var(--green-soft);
+}
+
+.choice-content {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.choice-mark {
+  display: inline-grid;
+  min-width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--green-soft);
+  color: var(--green-dark);
+  font-weight: 800;
+}
+
+.opts button.active .choice-mark {
+  background: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+}
+
+.choice-title {
+  display: block;
+  font-weight: 800;
+}
+
+.choice-help {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.opts button.active .choice-help {
+  color: rgba(255, 255, 255, 0.82);
 }
 
 .message {
@@ -272,7 +353,7 @@ button:focus-visible {
 
 @media (max-width: 720px) {
   body {
-    padding: 12px;
+    padding: 10px;
   }
 
   .card {
@@ -280,19 +361,20 @@ button:focus-visible {
   }
 
   .legend,
-  .opts.choice-list {
+  .opts.choice-list,
+  .opts.scale {
     grid-template-columns: 1fr;
   }
 
-  .opts.scale {
-    grid-template-columns: repeat(5, minmax(38px, 1fr));
-  }
-
   .question-title {
-    grid-template-columns: 36px 1fr;
+    grid-template-columns: 44px 1fr;
   }
 
   .form-actions .btn {
-    flex: 1 1 140px;
+    flex: 1 1 100%;
+  }
+
+  .choice-content {
+    align-items: flex-start;
   }
 }

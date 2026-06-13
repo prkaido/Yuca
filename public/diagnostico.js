@@ -112,6 +112,21 @@
     });
   }
 
+  function speakText(value) {
+    if (!("speechSynthesis" in window) || !("SpeechSynthesisUtterance" in window)) {
+      return false;
+    }
+
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(cleanText(value));
+    utterance.lang = "es-CO";
+    utterance.rate = 0.86;
+    utterance.pitch = 1;
+    window.speechSynthesis.speak(utterance);
+    return true;
+  }
+
   window.DiagnosticUI = {
     answerCount,
     bindEnterToStart,
@@ -124,6 +139,7 @@
     setBusy,
     setMessage,
     setProgress,
-    showSuccess
+    showSuccess,
+    speakText
   };
 })();

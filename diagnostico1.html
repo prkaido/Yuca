@@ -89,10 +89,10 @@ input{
 <div class="card">
 
 <!-- INICIO -->
-<div id="start">
+<div id="start" class="intro-panel">
   <h1>🌱 Diagnóstico Agroproductivo de la Yuca</h1>
 
-  <p>Ingrese su nombre para iniciar</p>
+  <p class="helper-text">Escriba el nombre del productor.</p>
 
   <input id="persona" placeholder="Nombre del productor">
 
@@ -108,7 +108,7 @@ input{
 
   <h1>🌱 Enunciados</h1>
 
-  <div class="legend">
+  <div class="legend hidden">
     <span>1 Nunca</span>
     <span>2 Rara vez</span>
     <span>3 A veces</span>
@@ -378,7 +378,7 @@ async function submitData(){
   }
 }
 
-const BLOCK_SIZE = 10;
+const BLOCK_SIZE = 1;
 const ui = DiagnosticUI;
 const elements = {
   card: document.querySelector(".card"),
@@ -397,8 +397,16 @@ const elements = {
 };
 
 document.querySelector("#start h1").textContent = "Diagnostico Agroproductivo de la Yuca";
-document.querySelector("#survey h1").textContent = "Enunciados";
+document.querySelector("#survey h1").textContent = "Pregunta";
 ui.bindEnterToStart(elements.persona, elements.startBtn);
+
+const SCALE_OPTIONS = [
+  { value: 1, title: "Nunca", help: "No lo hago" },
+  { value: 2, title: "Rara vez", help: "Lo hago muy poco" },
+  { value: 3, title: "A veces", help: "Lo hago algunas veces" },
+  { value: 4, title: "Frecuentemente", help: "Lo hago muchas veces" },
+  { value: 5, title: "Siempre", help: "Lo hago siempre" }
+];
 
 function startSurvey(){
   const name = elements.persona.value.trim();
@@ -418,16 +426,17 @@ function startSurvey(){
 
 function render(){
   const total = questions.length;
-  const totalBlocks = Math.ceil(total / BLOCK_SIZE);
-  const currentBlock = Math.floor(idx / BLOCK_SIZE) + 1;
   const bounds = ui.blockBounds(idx, total, BLOCK_SIZE);
   const isLastBlock = bounds.end >= total;
+  const hasCurrentAnswer = idx in answers;
 
   ui.setProgress(elements.bar, answers, total);
   elements.meta.textContent =
-    `Bloque ${currentBlock} de ${totalBlocks} - ${ui.answerCount(answers)} de ${total} respondidas`;
+    `Pregunta ${idx + 1} de ${total}. Respondidas: ${ui.answerCount(answers)}.`;
 
   elements.prevBtn.disabled = idx === 0;
+  elements.nextBtn.disabled = !hasCurrentAnswer;
+  elements.sendBtn.disabled = !hasCurrentAnswer;
   elements.nextBtn.classList.toggle("hidden", isLastBlock);
   elements.sendBtn.classList.toggle("hidden", !isLastBlock);
 
@@ -435,7 +444,10 @@ function render(){
 
   for(let i = bounds.start; i < bounds.end; i += 1){
     html += `
-      <div class="q">
+      <div class="q question-card">
+        <div class="assist-actions">
+          <button type="button" class="listen-btn" onclick="speakQuestion(${i})">Escuchar pregunta</button>
+        </div>
         <div class="question-title">
           <span class="question-number">${i + 1}</span>
           <span>${ui.escapeHtml(questions[i])}</span>
@@ -443,16 +455,24 @@ function render(){
         <div class="opts scale">
     `;
 
-    for(let v = 1; v <= 5; v += 1){
-      const active = answers[i] === v ? "active" : "";
+    for(const option of SCALE_OPTIONS){
+      const active = answers[i] === option.value ? "active" : "";
 
       html += `
         <button
           type="button"
           class="${active}"
-          aria-pressed="${answers[i] === v}"
-          onclick="setAns(${i}, ${v})"
-        >${v}</button>
+          aria-pressed="${answers[i] === option.value}"
+          onclick="setAns(${i}, ${option.value})"
+        >
+          <span class="choice-content">
+            <span class="choice-mark">${option.value}</span>
+            <span>
+              <span class="choice-title">${ui.escapeHtml(option.title)}</span>
+              <span class="choice-help">${ui.escapeHtml(option.help)}</span>
+            </span>
+          </span>
+        </button>
       `;
     }
 
@@ -469,6 +489,8 @@ function setAns(i, v){
   answers[i] = v;
   ui.clearMessage(elements.msg);
   render();
+  const action = (idx + BLOCK_SIZE >= questions.length) ? elements.sendBtn : elements.nextBtn;
+  action.focus({ preventScroll: true });
 }
 
 function nextBlock(){
@@ -498,7 +520,7 @@ async function submitData(){
   if(missing.length > 0){
     idx = Math.floor(missing[0] / BLOCK_SIZE) * BLOCK_SIZE;
     render();
-    ui.setMessage(elements.msg, "warn", `Faltan ${missing.length} preguntas por responder.`);
+    ui.setMessage(elements.msg, "warn", `Faltan ${missing.length} preguntas. Revise la pregunta marcada.`);
     return;
   }
 
@@ -526,12 +548,20 @@ function validateCurrentBlock(){
   const missing = ui.missingIndexes(answers, bounds.start, bounds.end);
 
   if(missing.length > 0){
-    ui.setMessage(elements.msg, "warn", `Faltan ${missing.length} preguntas en este bloque.`);
+    ui.setMessage(elements.msg, "warn", "Elija una respuesta para continuar.");
     return false;
   }
 
   ui.clearMessage(elements.msg);
   return true;
+}
+
+function speakQuestion(i){
+  const ok = ui.speakText(questions[i]);
+
+  if(!ok){
+    ui.setMessage(elements.msg, "warn", "Este navegador no puede leer la pregunta en voz alta.");
+  }
 }
 
 </script>

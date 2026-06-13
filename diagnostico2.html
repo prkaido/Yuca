@@ -82,9 +82,9 @@ input{
 <div class="card">
 
 <!-- INICIO -->
-<div id="start">
+<div id="start" class="intro-panel">
   <h1>🌱 Diagnóstico Agroproductivo de la Yuca</h1>
-  <p>Ingrese su nombre para iniciar</p>
+  <p class="helper-text">Escriba el nombre del productor.</p>
   <input id="persona" placeholder="Nombre del productor">
   <p id="startMsg" class="message"></p>
   <button class="btn" onclick="startSurvey()">Iniciar</button>
@@ -298,7 +298,7 @@ async function submitData(){
   }
 }
 
-const BLOCK_SIZE = 10;
+const BLOCK_SIZE = 1;
 const ui = DiagnosticUI;
 const elements = {
   card: document.querySelector(".card"),
@@ -317,7 +317,7 @@ const elements = {
 };
 
 document.querySelector("#start h1").textContent = "Diagnostico Agroproductivo de la Yuca";
-document.querySelector("#survey h1").textContent = "Enunciados";
+document.querySelector("#survey h1").textContent = "Pregunta";
 ui.bindEnterToStart(elements.persona, elements.startBtn);
 
 function startSurvey(){
@@ -338,17 +338,18 @@ function startSurvey(){
 
 function render(){
   const total = questions.length;
-  const totalBlocks = Math.ceil(total / BLOCK_SIZE);
-  const currentBlock = Math.floor(idx / BLOCK_SIZE) + 1;
   const bounds = ui.blockBounds(idx, total, BLOCK_SIZE);
   const isLastBlock = bounds.end >= total;
+  const hasCurrentAnswer = idx in answers;
   const letters = ["A", "B", "C", "D"];
 
   ui.setProgress(elements.bar, answers, total);
   elements.meta.textContent =
-    `Bloque ${currentBlock} de ${totalBlocks} - ${ui.answerCount(answers)} de ${total} respondidas`;
+    `Pregunta ${idx + 1} de ${total}. Respondidas: ${ui.answerCount(answers)}.`;
 
   elements.prevBtn.disabled = idx === 0;
+  elements.nextBtn.disabled = !hasCurrentAnswer;
+  elements.sendBtn.disabled = !hasCurrentAnswer;
   elements.nextBtn.classList.toggle("hidden", isLastBlock);
   elements.sendBtn.classList.toggle("hidden", !isLastBlock);
 
@@ -356,7 +357,10 @@ function render(){
 
   for(let i = bounds.start; i < bounds.end; i += 1){
     html += `
-      <div class="q">
+      <div class="q question-card">
+        <div class="assist-actions">
+          <button type="button" class="listen-btn" onclick="speakQuestion(${i})">Escuchar pregunta</button>
+        </div>
         <div class="question-title">
           <span class="question-number">${i + 1}</span>
           <span>${ui.escapeHtml(questions[i])}</span>
@@ -373,7 +377,14 @@ function render(){
           class="${active}"
           aria-pressed="${answers[i] === v}"
           onclick="setAns(${i}, ${v})"
-        >${letters[v]}. ${ui.escapeHtml(options[i][v])}</button>
+        >
+          <span class="choice-content">
+            <span class="choice-mark">${letters[v]}</span>
+            <span>
+              <span class="choice-title">${ui.escapeHtml(options[i][v])}</span>
+            </span>
+          </span>
+        </button>
       `;
     }
 
@@ -390,6 +401,8 @@ function setAns(i, v){
   answers[i] = v;
   ui.clearMessage(elements.msg);
   render();
+  const action = (idx + BLOCK_SIZE >= questions.length) ? elements.sendBtn : elements.nextBtn;
+  action.focus({ preventScroll: true });
 }
 
 function nextBlock(){
@@ -419,7 +432,7 @@ async function submitData(){
   if(missing.length > 0){
     idx = Math.floor(missing[0] / BLOCK_SIZE) * BLOCK_SIZE;
     render();
-    ui.setMessage(elements.msg, "warn", `Faltan ${missing.length} preguntas por responder.`);
+    ui.setMessage(elements.msg, "warn", `Faltan ${missing.length} preguntas. Revise la pregunta marcada.`);
     return;
   }
 
@@ -447,12 +460,24 @@ function validateCurrentBlock(){
   const missing = ui.missingIndexes(answers, bounds.start, bounds.end);
 
   if(missing.length > 0){
-    ui.setMessage(elements.msg, "warn", `Faltan ${missing.length} preguntas en este bloque.`);
+    ui.setMessage(elements.msg, "warn", "Elija una respuesta para continuar.");
     return false;
   }
 
   ui.clearMessage(elements.msg);
   return true;
+}
+
+function speakQuestion(i){
+  const answerText = options[i].map((option, index) => {
+    const letter = ["A", "B", "C", "D"][index];
+    return `${letter}. ${ui.cleanText(option)}`;
+  }).join(". ");
+  const ok = ui.speakText(`${questions[i]}. Opciones: ${answerText}`);
+
+  if(!ok){
+    ui.setMessage(elements.msg, "warn", "Este navegador no puede leer la pregunta en voz alta.");
+  }
 }
 
 </script>
