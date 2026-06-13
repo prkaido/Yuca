@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Agrodiagnóstico</title>
+
+<style>
+body{
+  font-family:Arial,sans-serif;
+  background:#f3f5f2;
+  margin:0;
+  padding:20px;
+}
+
+.card{
+  max-width:900px;
+  margin:auto;
+  background:#fff;
+  padding:24px;
+  border-radius:16px;
+  box-shadow:0 8px 24px rgba(0,0,0,.08);
+}
+
+input{
+  width:100%;
+  padding:12px;
+  border:1px solid #ccc;
+  border-radius:10px;
+  margin:10px 0;
+}
+
+.btn{
+  background:#1f7a3d;
+  color:#fff;
+  border:none;
+  padding:12px 18px;
+  border-radius:10px;
+  cursor:pointer;
+}
+
+.hidden{display:none}
+
+.progress{
+  height:10px;
+  background:#ddd;
+  border-radius:999px;
+  overflow:hidden;
+  margin:12px 0;
+}
+
+.bar{
+  height:10px;
+  background:#1f7a3d;
+  width:0%;
+}
+
+.q{
+  padding:12px 0;
+  border-bottom:1px solid #eee;
+}
+
+.opts button{
+  margin:2px;
+  padding:8px 12px;
+  border:1px solid #999;
+  border-radius:8px;
+  background:#fff;
+  cursor:pointer;
+}
+
+.active{
+  background:#1f7a3d!important;
+  color:#fff;
+}
+</style>
+<link rel="stylesheet" href="/diagnostico.css">
+</head>
+
+<body>
+
+<div class="card">
+
+<!-- INICIO -->
+<div id="start">
+  <h1>🌱 Diagnóstico Agroproductivo de la Yuca</h1>
+  <p>Ingrese su nombre para iniciar</p>
+  <input id="persona" placeholder="Nombre del productor">
+  <p id="startMsg" class="message"></p>
+  <button class="btn" onclick="startSurvey()">Iniciar</button>
+</div>
+
+<!-- ENCUESTA -->
+<div id="survey" class="hidden">
+
+  <h1>🌱 Enunciados</h1>
+  <p>Seleccione una respuesta por pregunta.</p>
+
+  <div class="progress" role="progressbar" aria-label="Progreso del diagnostico" aria-valuemin="0" aria-valuemax="100">
+    <div id="bar" class="bar"></div>
+  </div>
+
+  <p id="meta"></p>
+
+  <div id="questions"></div>
+
+  <p id="msg"></p>
+
+  <div class="form-actions">
+    <button type="button" id="prevBtn" class="btn" onclick="prevBlock()">Anterior</button>
+    <button type="button" id="nextBtn" class="btn" onclick="nextBlock()">Siguiente</button>
+    <button type="button" id="sendBtn" class="btn hidden" onclick="submitData()">Enviar</button>
+  </div>
+
+</div>
+
+</div>
+
+<script src="/diagnostico.js"></script>
+<script>
+
+const SCRIPT_URL = "/api/diagnosticos";
+let idEnvio = window.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+const questions = [
+"Antes de iniciar un cultivo de yuca, lo primero que debe definirse es:",
+"Para saber si sembrar yuca será rentable, se debe revisar principalmente:",
+"Antes de sembrar, es importante analizar:",
+"Un riesgo inicial del cultivo de yuca puede ser:",
+"Antes de sembrar, conviene identificar:",
+"Trabajar con otros productores ayuda a:",
+"Una tecnología útil al iniciar es:",
+"En la planificación del cultivo, un presupuesto sirve para:",
+"Un cronograma permite:",
+"Planificar mano de obra ayuda a:",
+"Para cuidar el ambiente se debe planificar:",
+"Para prevenir pérdidas se deben planificar acciones frente a:",
+"Revisar precios antes de cosechar pertenece a:",
+"Asignar funciones entre socios permite:",
+"Programar uso de maquinaria sirve para:",
+"Durante la ejecución se debe controlar:",
+"Cumplir labores en fechas previstas corresponde a:",
+"Una buena práctica agrícola es:",
+"Para reducir daños por plagas se debe:",
+"Buscar mejor precio para la cosecha es parte de:",
+"Promover trabajo en equipo mejora:",
+"Una herramienta tecnológica útil es:",
+"Revisar si hubo ganancias corresponde a:",
+"Comparar avance real con lo planificado es:",
+"Supervisar impacto ambiental significa revisar:",
+"Dar seguimiento a amenazas permite:",
+"Verificar satisfacción del comprador ayuda a:",
+"Evaluar participación del grupo permite:",
+"Al finalizar, revisar resultados del uso de tecnología sirve para:",
+"Al cierre del cultivo, registrar lecciones aprendidas ayuda a:"
+];
+
+const options = [
+["Objetivo del cultivo","Marca del abono","Color del empaque","Tipo de saco"],
+["Tamaño de hojas","Color de raíces","Costos e ingresos esperados","Nombre de finca"],
+["Precio del arroz","Suelo y clima","Tamaño del tractor","Color del cielo"],
+["Tamaño de mesa","Luz del cuarto","Sequía","Sombra de casa"],
+["Número de ventanas","Marca de celular","Compradores posibles","Color de botas"],
+["Perder tiempo","Compartir recursos","Subir impuestos","Competir menos"],
+["Radio viejo","Semilla mejorada","Linterna dañada","Silla plástica"],
+["Guardar semillas","Medir lluvia","Cortar yuca","Calcular costos"],
+["Cambiar clima","Pintar bodega","Ordenar actividades por tiempo","Vender más caro"],
+["Evitar cosecha","Cambiar semillas","Tener personal necesario","Bajar temperatura"],
+["Uso responsable del suelo","Tala de árboles","Más humo","Quemas frecuentes"],
+["Colores de sacos","Plagas y sequías","Marca de camisa","Tamaño de casa"],
+["Fertilización","Mercadeo","Limpieza","Riego"],
+["Más gasto","Mejor organización","Menos cosecha","Más desorden"],
+["Subir maleza","Cambiar clima","Mejorar eficiencia","Bajar ventas"],
+["Música del campo","Número de perros","Color de camisa","Gastos realizados"],
+["Ejecutar plan","Comprar casa","Cambiar terreno","Vender ganado"],
+["Regar gasolina","Botar residuos","Uso correcto de insumos","Quemar suelo"],
+["Aplicar controles oportunos","No revisar cultivo","Cortar árboles","Esperar pérdidas"],
+["Limpieza","Siembra","Riego","Comercialización"],
+["Coordinación","Impuestos","Maleza","Sequía"],
+["Sistema de riego","Candado roto","Escoba vieja","Soga usada"],
+["Compra de botas","Siembra nueva","Monitoreo financiero","Limpieza casa"],
+["Corte manual","Venta directa","Cambio de clima","Control del proyecto"],
+["Color del tractor","Número de sacos","Estado del suelo y agua","Tamaño del machete"],
+["Vender rápido","Sembrar arroz","Comprar ganado","Corregir a tiempo"],
+["Mejorar ventas futuras","Cambiar clima","Bajar cosecha","Secar suelo"],
+["Perder tiempo","Menos producción","Aumentar maleza","Mejorar trabajo conjunto"],
+["Subir plagas","Aprender mejoras","Regar menos","Cortar árboles"],
+["Borrar datos","Vender tierra","Cambiar vecinos","Mejorar próximos proyectos"]
+];
+
+
+let idx = 0;
+let answers = {};
+
+function startSurvey(){
+  const n = document.getElementById('persona').value.trim();
+  if(!n){
+    alert('Ingrese el nombre');
+    return;
+  }
+  document.getElementById('start').classList.add('hidden');
+  document.getElementById('survey').classList.remove('hidden');
+  render();
+}
+
+function render(){
+
+  document.getElementById('bar').style.width =
+    ((Object.keys(answers).length/questions.length)*100)+'%';
+
+  document.getElementById('meta').innerText =
+    `Bloque ${Math.floor(idx/10)+1} de 3`;
+
+  document.getElementById('sendBtn').classList.toggle('hidden', idx < 20);
+  document.getElementById('nextBtn').classList.toggle('hidden', idx >= 20);
+
+  let html = '';
+
+  for(let i=idx;i<Math.min(idx+10,questions.length);i++){
+    html += `
+    <div class="q">
+      <div>${i+1}. ${questions[i]}</div>
+      <div class="opts">
+    `;
+
+    const letras = ['A','B','C','D'];
+
+	for(let v=0; v<4; v++){
+	  const active = answers[i]===v ? 'active' : '';
+	  html += `
+		<button class="${active}" onclick="setAns(${i},${v})">
+		  ${letras[v]}. ${options[i][v]}
+		</button>
+	  `;
+	}
+
+    html += `</div></div>`;
+  }
+
+  document.getElementById('questions').innerHTML = html;
+}
+
+function setAns(i,v){
+  answers[i]=v;
+  render();
+}
+
+function nextBlock(){
+  if(idx<20) idx+=10;
+  render();
+}
+
+function prevBlock(){
+  if(idx>0) idx-=10;
+  render();
+}
+
+async function submitData(){
+
+  const msg = document.getElementById("msg");
+  const btn = document.getElementById("sendBtn");
+  btn.disabled = true;
+  btn.innerText = "Enviando...";
+  
+  try{
+
+    const res = await fetch(SCRIPT_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        idEnvio: idEnvio,
+        tipo: "diagnostico2",
+		nombre: document.getElementById("persona").value,		
+        respuestas: answers
+      }),
+      headers: {
+        "Content-Type": "application/json"
+      }
+    });
+
+    const text = await res.text(); // 👈 IMPORTANTE (NO json directo)
+    const json = JSON.parse(text);
+
+    if(json.ok){
+      document.querySelector(".card").innerHTML =
+      `<div style="text-align:center;padding:40px">
+        <h1 style="color:#1f7a3d">✅ Éxito</h1>
+        <p>Formulario enviado correctamente</p>
+      </div>`;
+	  btn.disabled = true;
+	  btn.innerText = "Enviado";
+    }else{
+      msg.innerHTML = "❌ Error del servidor: " + (json.error || "desconocido");
+    }
+
+  }catch(e){
+    console.error(e);
+    msg.innerHTML = "Error de conexion con el servidor local";
+  }
+}
+
+const BLOCK_SIZE = 10;
+const ui = DiagnosticUI;
+const elements = {
+  card: document.querySelector(".card"),
+  start: document.getElementById("start"),
+  survey: document.getElementById("survey"),
+  persona: document.getElementById("persona"),
+  startMsg: document.getElementById("startMsg"),
+  bar: document.getElementById("bar"),
+  meta: document.getElementById("meta"),
+  questions: document.getElementById("questions"),
+  msg: document.getElementById("msg"),
+  prevBtn: document.getElementById("prevBtn"),
+  nextBtn: document.getElementById("nextBtn"),
+  sendBtn: document.getElementById("sendBtn"),
+  startBtn: document.querySelector("#start .btn")
+};
+
+document.querySelector("#start h1").textContent = "Diagnostico Agroproductivo de la Yuca";
+document.querySelector("#survey h1").textContent = "Enunciados";
+ui.bindEnterToStart(elements.persona, elements.startBtn);
+
+function startSurvey(){
+  const name = elements.persona.value.trim();
+
+  if(!name){
+    elements.persona.focus();
+    ui.setMessage(elements.startMsg, "warn", "Ingrese el nombre del productor para iniciar.");
+    return;
+  }
+
+  ui.clearMessage(elements.startMsg);
+  ui.clearMessage(elements.msg);
+  elements.start.classList.add("hidden");
+  elements.survey.classList.remove("hidden");
+  render();
+}
+
+function render(){
+  const total = questions.length;
+  const totalBlocks = Math.ceil(total / BLOCK_SIZE);
+  const currentBlock = Math.floor(idx / BLOCK_SIZE) + 1;
+  const bounds = ui.blockBounds(idx, total, BLOCK_SIZE);
+  const isLastBlock = bounds.end >= total;
+  const letters = ["A", "B", "C", "D"];
+
+  ui.setProgress(elements.bar, answers, total);
+  elements.meta.textContent =
+    `Bloque ${currentBlock} de ${totalBlocks} - ${ui.answerCount(answers)} de ${total} respondidas`;
+
+  elements.prevBtn.disabled = idx === 0;
+  elements.nextBtn.classList.toggle("hidden", isLastBlock);
+  elements.sendBtn.classList.toggle("hidden", !isLastBlock);
+
+  let html = "";
+
+  for(let i = bounds.start; i < bounds.end; i += 1){
+    html += `
+      <div class="q">
+        <div class="question-title">
+          <span class="question-number">${i + 1}</span>
+          <span>${ui.escapeHtml(questions[i])}</span>
+        </div>
+        <div class="opts choice-list">
+    `;
+
+    for(let v = 0; v < options[i].length; v += 1){
+      const active = answers[i] === v ? "active" : "";
+
+      html += `
+        <button
+          type="button"
+          class="${active}"
+          aria-pressed="${answers[i] === v}"
+          onclick="setAns(${i}, ${v})"
+        >${letters[v]}. ${ui.escapeHtml(options[i][v])}</button>
+      `;
+    }
+
+    html += `
+        </div>
+      </div>
+    `;
+  }
+
+  elements.questions.innerHTML = html;
+}
+
+function setAns(i, v){
+  answers[i] = v;
+  ui.clearMessage(elements.msg);
+  render();
+}
+
+function nextBlock(){
+  if(!validateCurrentBlock()){
+    return;
+  }
+
+  if(idx + BLOCK_SIZE < questions.length){
+    idx += BLOCK_SIZE;
+  }
+
+  render();
+}
+
+function prevBlock(){
+  if(idx - BLOCK_SIZE >= 0){
+    idx -= BLOCK_SIZE;
+  }
+
+  ui.clearMessage(elements.msg);
+  render();
+}
+
+async function submitData(){
+  const missing = ui.missingIndexes(answers, 0, questions.length);
+
+  if(missing.length > 0){
+    idx = Math.floor(missing[0] / BLOCK_SIZE) * BLOCK_SIZE;
+    render();
+    ui.setMessage(elements.msg, "warn", `Faltan ${missing.length} preguntas por responder.`);
+    return;
+  }
+
+  ui.setBusy(elements.sendBtn, true, "Enviando...");
+  ui.clearMessage(elements.msg);
+
+  try{
+    await ui.postJSON(SCRIPT_URL, {
+      idEnvio: idEnvio,
+      tipo: "diagnostico2",
+      nombre: elements.persona.value.trim(),
+      respuestas: answers
+    });
+
+    ui.showSuccess(elements.card);
+  }catch(e){
+    console.error(e);
+    ui.setBusy(elements.sendBtn, false, "Enviando...");
+    ui.setMessage(elements.msg, "error", e.message || "Error de conexion con el servidor local.");
+  }
+}
+
+function validateCurrentBlock(){
+  const bounds = ui.blockBounds(idx, questions.length, BLOCK_SIZE);
+  const missing = ui.missingIndexes(answers, bounds.start, bounds.end);
+
+  if(missing.length > 0){
+    ui.setMessage(elements.msg, "warn", `Faltan ${missing.length} preguntas en este bloque.`);
+    return false;
+  }
+
+  ui.clearMessage(elements.msg);
+  return true;
+}
+
+</script>
+
+</body>
+</html>
