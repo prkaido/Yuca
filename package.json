@@ -1,0 +1,20 @@
+{
+  "name": "server-yuca-4",
+  "version": "1.0.0",
+  "description": "Servidor Node con SQLite local, Postgres en Render y tunel ngrok para diagnosticos de yuca.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "tunnel": "node server.js --ngrok"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "dependencies": {
+    "@ngrok/ngrok": "^1.5.2",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "pg": "^8.21.0"
+  }
+}
