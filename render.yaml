@@ -1,11 +1,16 @@
+version: "1"
+
 services:
   - type: web
     name: server-yuca-4
     runtime: node
+    repo: https://github.com/prkaido/Yuca
     plan: free
+    region: virginia
     buildCommand: npm ci
     startCommand: npm start
     healthCheckPath: /api/health
+    autoDeployTrigger: commit
     envVars:
       - key: NODE_VERSION
         value: 24
@@ -19,5 +24,6 @@ services:
 databases:
   - name: server-yuca-4-db
     plan: free
+    region: virginia
     databaseName: server_yuca_4
     user: server_yuca_4
